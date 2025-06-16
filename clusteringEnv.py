@@ -1,6 +1,7 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 import hdbscan
+import pyemma
 import pyemma.msm as msm
 
 
@@ -65,3 +66,18 @@ print(f"Number of clusters found: {n_clusters}")
 #pyemma markov state model
 #source pyemma-env/bin/activate
 #python clusteringEnv.py
+# Remove noise points (labeled -1) and keep only valid clustered points
+# Remove noise points (labeled -1) and keep only valid clustered points
+valid_idx = labels != -1
+clustered_traj = labels[valid_idx].astype(int)  # 1D integer array
+
+# Lag times to test (in frames/steps)
+lag_times = np.arange(1, 101, 5)
+
+# Calculate implied timescales
+its = pyemma.msm.its([clustered_traj], lags=lag_times, n_jobs=1)
+
+# Plot implied timescales
+pyemma.plots.plot_implied_timescales(its, units='steps', dt=1)
+plt.title('Implied Timescales vs Lag Time')
+plt.show()
