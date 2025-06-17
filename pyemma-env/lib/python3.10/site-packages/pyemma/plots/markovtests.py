@@ -163,7 +163,7 @@ def plot_cktest(cktest, figsize=None, diag=False,  y01=True, layout=None,
         handles.append(lpreds[ix])
         labels.append(predlabel)
         labels.append(estlabel)
-    fig.legend(handles, labels, 'upper center', ncol=2, frameon=False)
+    fig.legend(handles, labels, loc='upper center', ncol=2, frameon=False)
     # change subplot padding
     plt.subplots_adjust(top=1.0-padding_top, wspace=padding_between, hspace=padding_between)
     # done

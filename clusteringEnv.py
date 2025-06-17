@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import hdbscan
 import pyemma
 import pyemma.msm as msm
+import pyemma.coordinates as coor
 
 
 #load the data + pair the values to create a 2D array 
@@ -63,13 +64,10 @@ plt.show()
 n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
 print(f"Number of clusters found: {n_clusters}")
 
-#pyemma markov state model
-#source pyemma-env/bin/activate
-#python clusteringEnv.py
-# Remove noise points (labeled -1) and keep only valid clustered points
-# Remove noise points (labeled -1) and keep only valid clustered points
+
+# remove noise points (labeled -1) and keep only valid clustered points
 valid_idx = labels != -1
-clustered_traj = labels[valid_idx].astype(int)  # 1D integer array
+clustered_traj = labels[valid_idx].astype(int)  
 
 # Lag times to test (in frames/steps)
 lag_times = np.arange(1, 101, 5)
@@ -81,3 +79,41 @@ its = pyemma.msm.its([clustered_traj], lags=lag_times, n_jobs=1)
 pyemma.plots.plot_implied_timescales(its, units='steps', dt=1)
 plt.title('Implied Timescales vs Lag Time')
 plt.show()
+#red is the second slowest process, blue is the slowest process 
+#lag is around 30 steps 
+chosen_lag = 30
+
+msm_model = msm.estimate_markov_model([clustered_traj], lag=chosen_lag)
+print("\nTransition Matrix:", msm_model.transition_matrix)
+print("\nStationary distribution:", msm_model.stationary_distribution)
+print("\nTimescales (steps):", msm_model.timescales(k=3)) 
+
+# Run CK test for 3 metastable states (since you have 3 clusters)
+cktest = msm_model.cktest(3)
+
+# Plot CK test results with improved layout
+plt.figure(figsize=(10, 10))  
+pyemma.plots.plot_cktest(cktest)
+plt.tight_layout()           
+plt.show()
+
+# use stride to reduce data size
+stride = 30
+X_kmeans = X[::stride]
+
+# Perform k-means clustering (choose k=3 for 3 clusters/metastable states)
+k = 3
+cluster = coor.cluster_kmeans(X_kmeans, k=k, max_iter=100, stride=1, fixed_seed=42)
+
+# assign all data to clusters (discrete trajectories)
+dtrajs = cluster.assign(X)[0]  # returns a list, take the first element
+
+# Plot cluster centers
+plt.scatter(X[:, 0], X[:, 1], s=10, alpha=0.3, label='data')
+plt.scatter(cluster.clustercenters[:, 0], cluster.clustercenters[:, 1], c='red', s=100, label='centers')
+plt.xlabel('Tilt')
+plt.ylabel('Rotation')
+plt.title('PyEMMA k-means Clustering')
+plt.legend()
+plt.show()
+
